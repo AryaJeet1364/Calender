@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Calendar</title>
+    <style>
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .day {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .day.empty { background-color: #f0f0f0; }
+        .red { background-color: #ffcccc; }
+        .green { background-color: #ccffcc; }
+        .selected { border: 2px solid blue; }
+        #noteArea {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin-bottom: 10px;">
+        <button onclick="changeMonth(-1)">Previous</button>
+        <h1 id="currentMonth" style="display: inline-block; margin: 0 20px;"></h1>
+        <button onclick="changeMonth(1)">Next</button>
+    </div>
+    <div id="calendar" class="calendar"></div>
+    <h1 id="currentMonth" style="text-align: center;"></h1>
+    <div id="calendar" class="calendar"></div>
+    <div id="noteArea">
+        <textarea id="notes" rows="4" cols="50"></textarea>
+        <br>
+        <button onclick="saveNotes()">Save Notes</button>
+    </div>
+
+    <script>
+        let currentDate = new Date(new Date().getFullYear(), 6, 1); // Start with July 1st
+        let selectedDay = null;
+        let notes = {};
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            if (currentDate.getMonth() < 6) { // If before July
+                currentDate.setMonth(6); // Set to July
+            } else if (currentDate.getMonth() > 11) { // If after December
+                currentDate.setMonth(11); // Set to December
+            }
+            generateCalendar();
+        }
+
+        function generateCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = 
+                new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Add empty cells for days before the 1st
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'day empty';
+                calendar.appendChild(emptyDay);
+            }
+
+            // Add cells for each day of the month
+            for (let i = 1; i <= daysInMonth; i++) {
+                const day = document.createElement('div');
+                day.className = 'day';
+                day.textContent = i;
+                
+                const noteKey = `${year}-${month + 1}-${i}`;
+                if (notes[noteKey] && notes[noteKey].color) {
+                    day.classList.add(notes[noteKey].color);
+                }
+                
+                day.onclick = function() { selectDay(this, i); };
+                calendar.appendChild(day);
+            }
+        }
+
+        function selectDay(dayElement, dayNumber) {
+            if (selectedDay) {
+                selectedDay.classList.remove('selected');
+            }
+            selectedDay = dayElement;
+            dayElement.classList.add('selected');
+
+            toggleColor(dayElement);
+
+            const noteKey = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${dayNumber}`;
+            document.getElementById('notes').value = notes[noteKey] ? notes[noteKey].text : '';
+        }
+
+        function toggleColor(day) {
+            if (day.classList.contains('red')) {
+                day.classList.remove('red');
+                day.classList.add('green');
+            } else if (day.classList.contains('green')) {
+                day.classList.remove('green');
+            } else {
+                day.classList.add('red');
+            }
+            day.classList.add('selected');
+        }
+
+        function saveNotes() {
+            if (!selectedDay) return;
+
+            const dayNumber = selectedDay.textContent;
+            const noteKey = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${dayNumber}`;
+            notes[noteKey] = {
+                text: document.getElementById('notes').value,
+                color: selectedDay.classList.contains('red') ? 'red' : 
+                    selectedDay.classList.contains('green') ? 'green' : ''
+            };
+
+            localStorage.setItem('calendarNotes', JSON.stringify(notes));
+            alert('Notes saved!');
+        }
+
+        // Load saved notes if any
+        const savedNotes = localStorage.getItem('calendarNotes');
+        if (savedNotes) {
+            notes = JSON.parse(savedNotes);
+        }
+
+        generateCalendar();
+        // let currentDate = new Date();
+        // let selectedDay = null;
+        // let notes = {};
+
+        // function generateCalendar() {
+        //     const calendar = document.getElementById('calendar');
+        //     calendar.innerHTML = '';
+            
+        //     const year = currentDate.getFullYear();
+        //     const month = currentDate.getMonth();
+            
+        //     document.getElementById('currentMonth').textContent = 
+        //         new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        //     const firstDay = new Date(year, month, 1).getDay();
+        //     const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        //     // Add empty cells for days before the 1st
+        //     for (let i = 0; i < firstDay; i++) {
+        //         const emptyDay = document.createElement('div');
+        //         emptyDay.className = 'day empty';
+        //         calendar.appendChild(emptyDay);
+        //     }
+
+        //     // // Add cells for each day of the month
+        //     // for (let i = 1; i <= daysInMonth; i++) {
+        //     //     const day = document.createElement('div');
+        //     //     day.className = 'day';
+        //     //     day.textContent = i;
+        //     //     day.onclick = function() { selectDay(this, i); };
+        //     //     calendar.appendChild(day);
+        //     // }
+
+        //     // Add cells for each day of the month
+        //     for (let i = 1; i <= daysInMonth; i++) {
+        //         const day = document.createElement('div');
+        //         day.className = 'day';
+        //         day.textContent = i;
+                
+        //         // Check for saved color
+        //         const noteKey = `${year}-${month + 1}-${i}`;
+        //         if (notes[noteKey] && notes[noteKey].color) {
+        //             day.classList.add(notes[noteKey].color);
+        //         }
+                
+        //         day.onclick = function() { selectDay(this, i); };
+        //         calendar.appendChild(day);
+        //     }
+        // }
+
+        // // function selectDay(dayElement, dayNumber) {
+        // //     if (selectedDay) {
+        // //         selectedDay.classList.remove('selected');
+        // //     }
+        // //     selectedDay = dayElement;
+        // //     dayElement.classList.add('selected');
+
+        // //     const noteKey = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${dayNumber}`;
+        // //     document.getElementById('notes').value = notes[noteKey] || '';
+        // // }
+
+        // function selectDay(dayElement, dayNumber) {
+        //     if (selectedDay) {
+        //         selectedDay.classList.remove('selected');
+        //     }
+        //     selectedDay = dayElement;
+        //     dayElement.classList.add('selected');
+
+        //     // Toggle color
+        //     toggleColor(dayElement);
+
+        //     const noteKey = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${dayNumber}`;
+        //     document.getElementById('notes').value = notes[noteKey] || '';
+        // }
+
+        // // function toggleColor(day) {
+        // //     if (day.classList.contains('red')) {
+        // //         day.classList.remove('red');
+        // //         day.classList.add('green');
+        // //     } else if (day.classList.contains('green')) {
+        // //         day.classList.remove('green');
+        // //     } else {
+        // //         day.classList.add('red');
+        // //     }
+        // // }
+
+        // function toggleColor(day) {
+        //     if (day.classList.contains('red')) {
+        //         day.classList.remove('red');
+        //         day.classList.add('green');
+        //     } else if (day.classList.contains('green')) {
+        //         day.classList.remove('green');
+        //     } else {
+        //         day.classList.add('red');
+        //     }
+        //     // Ensure the 'selected' class is maintained
+        //     day.classList.add('selected');
+        // }
+
+        // // function saveNotes() {
+        // //     if (!selectedDay) return;
+
+        // //     const dayNumber = selectedDay.textContent;
+        // //     const noteKey = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${dayNumber}`;
+        // //     notes[noteKey] = document.getElementById('notes').value;
+
+        // //     localStorage.setItem('calendarNotes', JSON.stringify(notes));
+        // //     alert('Notes saved!');
+        // // }
+
+        // function saveNotes() {
+        //     if (!selectedDay) return;
+
+        //     const dayNumber = selectedDay.textContent;
+        //     const noteKey = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${dayNumber}`;
+        //     notes[noteKey] = {
+        //         text: document.getElementById('notes').value,
+        //         color: selectedDay.classList.contains('red') ? 'red' : 
+        //             selectedDay.classList.contains('green') ? 'green' : ''
+        //     };
+
+        //     localStorage.setItem('calendarNotes', JSON.stringify(notes));
+        //     alert('Notes saved!');
+        // }
+
+        // // Load saved notes if any
+        // const savedNotes = localStorage.getItem('calendarNotes');
+        // if (savedNotes) {
+        //     notes = JSON.parse(savedNotes);
+        // }
+
+        // generateCalendar();
+    </script>
+</body>
+</html>
